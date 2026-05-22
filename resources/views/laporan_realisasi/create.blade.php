@@ -5,7 +5,7 @@
 
 @section('content')
 
-{{-- SUCCESS TOAST --}}
+{{-- Toast notifikasi sukses simpan / update data --}}
 @if (session('success'))
 <div id="successToast" style="
     position: fixed; top: 20px; right: 20px; z-index: 9999;
@@ -24,15 +24,20 @@
     </button>
 </div>
 <style>
+/* Animasi toast masuk & keluar */
 @keyframes toastIn  { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes toastOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-8px); } }
 </style>
 <script>
+// Tutup toast secara manual
 function closeToast() {
     const t = document.getElementById('successToast');
     if (t) { t.style.animation = 'toastOut 0.25s ease'; setTimeout(() => t.remove(), 250); }
 }
+// Auto-tutup toast setelah 4,5 detik
 setTimeout(closeToast, 4500);
+
+{{-- Reset form hanya pada mode tambah (bukan edit) setelah sukses simpan --}}
 @if (session('success') && !$laporanRealisasi)
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('formLaporan').reset();
@@ -42,8 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 @endif
 
-{{-- GLOBAL STYLES --}}
+{{-- Gaya global form --}}
 <style>
+    /* Gaya umum input teks */
     .form-input {
         width: 100%; padding: 8px 11px;
         border: 1.5px solid rgba(0,0,0,0.10);
@@ -53,22 +59,28 @@ document.addEventListener('DOMContentLoaded', () => {
         background: #fafafa; color: #374151;
         transition: border-color 0.2s, box-shadow 0.2s;
     }
+    /* Input saat fokus */
     .form-input:focus {
         border-color: #980404;
         background: #fff;
         box-shadow: 0 0 0 3px rgba(152,4,4,0.07);
     }
+    /* Input dengan kondisi error */
     .form-input.is-error { border-color: #dc2626; }
+
+    /* Label field */
     .field-label {
         display: block; margin-bottom: 6px;
         font-family: 'Montserrat', sans-serif;
         font-weight: 600; font-size: 12px; color: #980404;
     }
-    .field-label span { color: #dc2626; }
+    .field-label span { color: #dc2626; } /* Tanda bintang wajib isi */
+
+    /* Teks pesan error per field */
     .field-error { margin: 3px 0 0; font-size: 11px; color: #dc2626; }
 </style>
 
-{{-- VALIDASI ERROR --}}
+{{-- Kotak pesan error validasi server --}}
 @if ($errors->any())
 <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px;">
     <p style="margin: 0 0 4px; font-weight: 700; color: #dc2626; font-family: 'Montserrat', sans-serif; font-size: 11px;">
@@ -82,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 @endif
 
-{{-- META BAR: No. Akad + No. Loan --}}
+{{-- Bar preview No. Akad dan No. Loan (otomatis dari sistem) --}}
 <div style="
     display: flex; align-items: stretch; gap: 1px;
     background: rgba(0,0,0,0.06); border-radius: 9px; overflow: hidden;
@@ -106,8 +118,9 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 </div>
 
-{{-- FORM CARD --}}
+{{-- Kartu form utama --}}
 <div class="card" style="padding: 22px;">
+    {{-- Action form berbeda untuk mode tambah (store) dan edit (update) --}}
     <form
         action="{{ $laporanRealisasi
             ? route('laporan-realisasi.update', $laporanRealisasi->id)
@@ -115,11 +128,12 @@ document.addEventListener('DOMContentLoaded', () => {
         method="POST"
         id="formLaporan">
         @csrf
+        {{-- Spoofing method PUT untuk mode edit --}}
         @if($laporanRealisasi)
             @method('PUT')
         @endif
 
-        {{-- Nama Debitur --}}
+        {{-- Input nama debitur --}}
         <div style="margin-bottom: 14px;">
             <label class="field-label">Nama Debitur <span>*</span></label>
             <input type="text" name="nama_debitur"
@@ -129,10 +143,11 @@ document.addEventListener('DOMContentLoaded', () => {
             @error('nama_debitur')<p class="field-error">{{ $message }}</p>@enderror
         </div>
 
-        {{-- Berat & Kadar --}}
+        {{-- Input berat emas (gram) & kadar --}}
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
             <div>
                 <label class="field-label">Berat (gram) <span>*</span></label>
+                {{-- Perubahan berat memicu kalkulasi ulang pendapatan sewa --}}
                 <input type="number" step="0.01" name="berat" id="inputBerat"
                     value="{{ old('berat', $laporanRealisasi?->berat) }}"
                     placeholder="cth: 10.50"
@@ -141,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 @error('berat')<p class="field-error">{{ $message }}</p>@enderror
             </div>
             <div>
-                <label class="field-label">Kadar<span>*</span></label>
+                <label class="field-label">Kadar <span>*</span></label>
                 <input type="number" step="0.01" name="kadar"
                     value="{{ old('kadar', $laporanRealisasi?->kadar) }}"
                     placeholder="cth: 24"
@@ -152,53 +167,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
 
-        {{-- TAKSIRAN --}}
-        <div>
-            <label class="field-label">Taksiran (Rp) <span>*</span></label>
+            {{-- Input taksiran: tampilan format Rupiah, hidden input menyimpan angka murni --}}
+            <div>
+                <label class="field-label">Taksiran (Rp) <span>*</span></label>
+                <input type="text"
+                    id="inputTaksiran"
+                    placeholder="cth: Rp 5.000.000"
+                    class="form-input {{ $errors->has('taksiran') ? 'is-error' : '' }}"
+                    oninput="formatRupiahInput(this, 'hiddenTaksiran')">
+                <input type="hidden"
+                    name="taksiran"
+                    id="hiddenTaksiran"
+                    value="{{ old('taksiran', $laporanRealisasi?->taksiran) }}">
+                @error('taksiran')
+                    <p class="field-error">{{ $message }}</p>
+                @enderror
+            </div>
 
-            <input type="text"
-                id="inputTaksiran"
-                placeholder="cth: Rp 5.000.000"
-                class="form-input {{ $errors->has('taksiran') ? 'is-error' : '' }}"
-                oninput="formatRupiahInput(this, 'hiddenTaksiran')">
+            {{-- Input pembiayaan: tampilan format Rupiah, hidden input menyimpan angka murni --}}
+            <div>
+                <label class="field-label">Pembiayaan (Rp) <span>*</span></label>
+                <input type="text"
+                    id="inputPembiayaan"
+                    placeholder="cth: Rp 4.000.000"
+                    class="form-input {{ $errors->has('pembiayaan') ? 'is-error' : '' }}"
+                    oninput="formatRupiahInput(this, 'hiddenPembiayaan')">
+                <input type="hidden"
+                    name="pembiayaan"
+                    id="hiddenPembiayaan"
+                    value="{{ old('pembiayaan', $laporanRealisasi?->pembiayaan) }}">
+                @error('pembiayaan')
+                    <p class="field-error">{{ $message }}</p>
+                @enderror
+            </div>
 
-            <input type="hidden"
-                name="taksiran"
-                id="hiddenTaksiran"
-                value="{{ old('taksiran', $laporanRealisasi?->taksiran) }}">
-
-            @error('taksiran')
-                <p class="field-error">{{ $message }}</p>
-            @enderror
         </div>
 
-        {{-- PEMBIAYAAN --}}
-        <div>
-            <label class="field-label">Pembiayaan (Rp) <span>*</span></label>
-
-            <input type="text"
-                id="inputPembiayaan"
-                placeholder="cth: Rp 4.000.000"
-                class="form-input {{ $errors->has('pembiayaan') ? 'is-error' : '' }}"
-                oninput="formatRupiahInput(this, 'hiddenPembiayaan')">
-
-            <input type="hidden"
-                name="pembiayaan"
-                id="hiddenPembiayaan"
-                value="{{ old('pembiayaan', $laporanRealisasi?->pembiayaan) }}">
-
-            @error('pembiayaan')
-                <p class="field-error">{{ $message }}</p>
-            @enderror
-        </div>
-
-    </div>
-
-
-        {{-- Tanggal Realisasi & Jatuh Tempo --}}
+        {{-- Input tanggal realisasi & tanggal jatuh tempo --}}
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
             <div>
                 <label class="field-label">Tanggal Realisasi <span>*</span></label>
+                {{-- Perubahan tanggal memicu kalkulasi ulang pendapatan sewa --}}
                 <input type="date" name="tanggal_realisasi" id="inputTglRealisasi"
                     value="{{ old('tanggal_realisasi',
                         $laporanRealisasi
@@ -221,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         </div>
 
-        {{-- Pendapatan Sewa Preview --}}
+        {{-- Preview kalkulasi pendapatan sewa (berat × tarif × jumlah bulan) --}}
         <div style="
             display: flex; align-items: center; justify-content: space-between;
             background: #fafafa; border: 1px dashed rgba(152,4,4,0.2);
@@ -236,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         </div>
 
-        {{-- Actions --}}
+        {{-- Tombol aksi: Simpan/Update, Batal (mode tambah saja), dan Kembali --}}
         <div style="display: flex; align-items: center; gap: 8px;">
             <button type="submit" style="
                 padding: 8px 20px; background: #980404; color: #fff;
@@ -248,6 +257,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 onmouseout="this.style.background='#980404'">
                 <i class="fas fa-save"></i> {{ $laporanRealisasi ? 'Update' : 'Simpan' }}
             </button>
+
+            {{-- Tombol Batal hanya muncul pada mode tambah data baru --}}
             @if(!$laporanRealisasi)
             <button type="button" onclick="konfirmasiBatal()" style="
                 padding: 8px 16px; background: transparent; color: #dc2626;
@@ -260,6 +271,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <i class="fas fa-times" style="font-size: 11px;"></i> Batal
             </button>
             @endif
+
+            {{-- Tautan kembali ke daftar laporan realisasi --}}
             <a href="{{ route('laporan-realisasi.index') }}" style="
                 padding: 8px 16px; background: transparent; color: #6b7280;
                 border: 1.5px solid rgba(0,0,0,0.10); border-radius: 7px;
@@ -276,6 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <script>
+// Hitung preview pendapatan sewa: tarif × berat × selisih bulan (realisasi ke jatuh tempo)
 function hitungPendapatanSewa() {
     const berat         = parseFloat(document.getElementById('inputBerat').value) || 0;
     const tglRealisasi  = document.getElementById('inputTglRealisasi').value;
@@ -286,16 +300,18 @@ function hitungPendapatanSewa() {
         const s = new Date(tglRealisasi);
         const e = new Date(tglJatuhTempo);
         jumlahBulan = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth());
+        // Minimal 1 bulan
         if (jumlahBulan < 1) jumlahBulan = 1;
     }
 
     const tarifUjrah = {{ $tarifUjrah }};
-
     const pendapatan = tarifUjrah * berat * jumlahBulan;
+
     document.getElementById('previewPendapatan').textContent =
         'Rp ' + (berat > 0 && jumlahBulan > 0 ? pendapatan.toLocaleString('id-ID') : '0');
 }
 
+// Konfirmasi reset form saat klik tombol Batal
 function konfirmasiBatal() {
     if (confirm('Reset semua isian form?')) {
         document.getElementById('formLaporan').reset();
@@ -303,39 +319,35 @@ function konfirmasiBatal() {
     }
 }
 
+// Listener perubahan input yang mempengaruhi kalkulasi pendapatan sewa
 document.getElementById('inputBerat').addEventListener('input',          hitungPendapatanSewa);
 document.getElementById('inputTglRealisasi').addEventListener('change',  hitungPendapatanSewa);
 document.getElementById('inputTglJatuhTempo').addEventListener('change', hitungPendapatanSewa);
 
-// Hitung preview saat halaman load (penting untuk mode edit)
+// Hitung preview saat halaman pertama kali dimuat (penting untuk mode edit)
 hitungPendapatanSewa();
+
+// Format input Rupiah: tampilkan teks "Rp x.xxx" dan simpan angka murni ke hidden input
 function formatRupiahInput(input, hiddenId) {
     let angka = input.value.replace(/\D/g, '');
-
     document.getElementById(hiddenId).value = angka;
-
-    input.value = angka
-        ? 'Rp ' + Number(angka).toLocaleString('id-ID')
-        : '';
+    input.value = angka ? 'Rp ' + Number(angka).toLocaleString('id-ID') : '';
 }
 
-// Auto format saat edit
+// Auto-format nilai taksiran & pembiayaan saat mode edit (data sudah terisi dari DB)
 document.addEventListener('DOMContentLoaded', function () {
-
-    const taksiranVal = document.getElementById('hiddenTaksiran')?.value;
+    const taksiranVal   = document.getElementById('hiddenTaksiran')?.value;
     const pembiayaanVal = document.getElementById('hiddenPembiayaan')?.value;
 
     if (taksiranVal) {
         document.getElementById('inputTaksiran').value =
             'Rp ' + Number(taksiranVal).toLocaleString('id-ID');
     }
-
     if (pembiayaanVal) {
         document.getElementById('inputPembiayaan').value =
             'Rp ' + Number(pembiayaanVal).toLocaleString('id-ID');
     }
 });
-
 </script>
 
 @endsection

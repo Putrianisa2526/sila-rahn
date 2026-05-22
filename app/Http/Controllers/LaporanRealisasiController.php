@@ -9,6 +9,9 @@ use Carbon\Carbon;
 
 class LaporanRealisasiController extends Controller
 {
+    /**
+     * Memastikan user sudah login sebelum mengakses fungsi.
+     */
     private function checkLogin()
     {
         if (!session('login')) {
@@ -17,6 +20,9 @@ class LaporanRealisasiController extends Controller
         return null;
     }
 
+    /**
+     * Membuat nomor akad otomatis dengan format: [Urutan].3.22.[Tahun].[Bulan] RAHN
+     */
     private function generateNoAkad(): string
     {
         $now    = now();
@@ -30,6 +36,9 @@ class LaporanRealisasiController extends Controller
             . ' RAHN';
     }
 
+    /**
+     * Membuat nomor loan unik untuk kebutuhan perbankan.
+     */
     private function generateNoLoan(): string
     {
         $now    = now();
@@ -44,6 +53,9 @@ class LaporanRealisasiController extends Controller
         return redirect()->route('home');
     }
 
+    /**
+     * Menampilkan form input laporan baru.
+     */
     public function create()
     {
         if ($redirect = $this->checkLogin()) return $redirect;
@@ -58,24 +70,29 @@ class LaporanRealisasiController extends Controller
         ));
     }
 
+    /**
+     * Menyimpan laporan baru ke database dengan perhitungan otomatis.
+     */
     public function store(Request $request)
     {
         if ($redirect = $this->checkLogin()) return $redirect;
 
+        // Validasi input
         $validated = $request->validate([
-            'nama_debitur'       => 'required|string|max:255',
-            'berat'              => 'required|numeric|min:0',
-            'kadar'              => 'required|numeric|min:0',
-            'taksiran'           => 'required|numeric|min:0',
-            'pembiayaan'         => 'required|numeric|min:0',
+            'nama_debitur'      => 'required|string|max:255',
+            'berat'             => 'required|numeric|min:0',
+            'kadar'             => 'required|numeric|min:0',
+            'taksiran'          => 'required|numeric|min:0',
+            'pembiayaan'        => 'required|numeric|min:0',
             'tanggal_realisasi'  => 'required|date',
             'tanggal_jatuh_tempo'=> 'required|date|after:tanggal_realisasi',
         ]);
 
+        // Generate nomor otomatis
         $validated['no_akad'] = $this->generateNoAkad();
         $validated['no_loan'] = $this->generateNoLoan();
 
-        /* Hitung pendapatan sewa otomatis */
+        /* Perhitungan pendapatan sewa (Logika bisnis) */
         $tarifUjrah  = (float) Pengaturan::getValue('tarif_ujrah', 16000);
         $tglRealisasi = Carbon::parse($validated['tanggal_realisasi']);
         $tglJT        = Carbon::parse($validated['tanggal_jatuh_tempo']);
@@ -88,6 +105,9 @@ class LaporanRealisasiController extends Controller
         return back()->with('success', 'Laporan realisasi berhasil disimpan! No. Akad: ' . $validated['no_akad']);
     }
 
+    /**
+     * Menampilkan form edit laporan.
+     */
     public function edit($id)
     {
         if ($redirect = $this->checkLogin()) return $redirect;
@@ -102,6 +122,9 @@ class LaporanRealisasiController extends Controller
         ));
     }
 
+    /**
+     * Mengupdate data laporan yang sudah ada.
+     */
     public function update(Request $request, $id)
     {
         if ($redirect = $this->checkLogin()) return $redirect;
@@ -109,19 +132,19 @@ class LaporanRealisasiController extends Controller
         $realisasi = LaporanRealisasi::findOrFail($id);
 
         $validated = $request->validate([
-            'no_akad'            => 'required|string|max:255',
-            'no_loan'            => 'nullable|string|max:255',
-            'nama_debitur'       => 'required|string|max:255',
-            'berat'              => 'nullable|numeric|min:0',
-            'kadar'              => 'nullable|numeric|min:0',
-            'taksiran'           => 'nullable|numeric|min:0',
-            'pembiayaan'         => 'nullable|numeric|min:0',
-            'pendapatan_sewa'    => 'nullable|numeric|min:0',
+            'no_akad'           => 'required|string|max:255',
+            'no_loan'           => 'nullable|string|max:255',
+            'nama_debitur'      => 'required|string|max:255',
+            'berat'             => 'nullable|numeric|min:0',
+            'kadar'             => 'nullable|numeric|min:0',
+            'taksiran'          => 'nullable|numeric|min:0',
+            'pembiayaan'        => 'nullable|numeric|min:0',
+            'pendapatan_sewa'   => 'nullable|numeric|min:0',
             'tanggal_realisasi'  => 'required|date',
             'tanggal_jatuh_tempo'=> 'nullable|date',
         ]);
 
-        /* Hitung ulang pendapatan sewa jika berat/tanggal berubah */
+        // Hitung ulang pendapatan jika parameter berubah
         if (!empty($validated['berat']) && !empty($validated['tanggal_jatuh_tempo'])) {
             $tarifUjrah  = (float) Pengaturan::getValue('tarif_ujrah', 16000);
             $tglRealisasi = Carbon::parse($validated['tanggal_realisasi']);
@@ -132,11 +155,12 @@ class LaporanRealisasiController extends Controller
 
         $realisasi->update($validated);
 
-        return redirect()
-            ->route('data-laporan.index')
-            ->with('success', 'Laporan realisasi ' . $realisasi->no_akad . ' berhasil diperbarui.');
+        return redirect()->route('data-laporan.index')->with('success', 'Laporan realisasi ' . $realisasi->no_akad . ' berhasil diperbarui.');
     }
 
+    /**
+     * Menghapus data laporan.
+     */
     public function destroy($id)
     {
         if ($redirect = $this->checkLogin()) return $redirect;
@@ -145,8 +169,6 @@ class LaporanRealisasiController extends Controller
         $noAkad    = $realisasi->no_akad;
         $realisasi->delete();
 
-        return redirect()
-            ->route('data-laporan.index')
-            ->with('success', 'Laporan realisasi ' . $noAkad . ' berhasil dihapus.');
+        return redirect()->route('data-laporan.index')->with('success', 'Laporan realisasi ' . $noAkad . ' berhasil dihapus.');
     }
 }

@@ -5,24 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Login | Sistem Informasi Laporan Realisasi Rahn</title>
 
+    {{-- Favicon --}}
     <link rel="icon" type="image/png" href="{{ asset('assets/img/brk.png') }}">
+
+    {{-- Google Fonts: Inter & Montserrat --}}
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+
+    {{-- Font Awesome untuk ikon --}}
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
     <style>
+        /* Reset dasar agar semua elemen konsisten */
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
+        /* Background halaman dengan gambar penuh layar */
         body {
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
             background: url('{{ asset("assets/img/bg_rahn.jpg") }}') center center / cover no-repeat;
             display: flex;
             align-items: center;
-            justify-content: flex-end;
+            justify-content: flex-end; /* Kartu login di sisi kanan */
             padding: 40px 6vw;
         }
 
-        /* Card */
+        /* Kartu utama login */
         .login-card {
             width: 100%;
             max-width: 360px;
@@ -32,7 +39,7 @@
             box-shadow: 0 8px 40px rgba(0,0,0,0.13);
         }
 
-        /* Logo */
+        /* Area logo perusahaan */
         .login-logo {
             text-align: center;
             margin-bottom: 6px;
@@ -42,7 +49,7 @@
             object-fit: contain;
         }
 
-        /* Title */
+        /* Judul sistem */
         .login-title {
             text-align: center;
             font-family: 'Montserrat', sans-serif;
@@ -54,7 +61,7 @@
             margin-bottom: 16px;
         }
 
-        /* Subtitle */
+        /* Teks panduan login */
         .login-subtitle {
             background: #fef2f2;
             border-left: 3px solid #980404;
@@ -67,7 +74,7 @@
             line-height: 1.6;
         }
 
-        /* Error */
+        /* Kotak pesan error validasi */
         .alert-error {
             background: #fef2f2;
             border-left: 3px solid #dc2626;
@@ -84,9 +91,10 @@
             line-height: 1.8;
         }
 
-        /* Input */
+        /* Grup form (setiap baris input) */
         .form-group { margin-bottom: 12px; }
 
+        /* Gaya input teks umum */
         .form-input {
             width: 100%;
             padding: 10px 14px;
@@ -100,14 +108,18 @@
             transition: border-color 0.2s, box-shadow 0.2s;
         }
         .form-input::placeholder { color: #c0c7d0; }
+
+        /* Input saat sedang aktif/fokus */
         .form-input:focus {
             border-color: #980404;
             background: #fff;
             box-shadow: 0 0 0 3px rgba(152,4,4,0.07);
         }
+
+        /* Input dengan kondisi error */
         .form-input.is-invalid { border-color: #dc2626; }
 
-        /* Password wrapper */
+        /* Wrapper input password + tombol tampil/sembunyikan */
         .pw-wrapper { position: relative; }
         .pw-wrapper .toggle-pw {
             position: absolute;
@@ -124,7 +136,7 @@
         .pw-wrapper .toggle-pw:hover { color: #980404; }
         .pw-wrapper .form-input { padding-right: 36px; }
 
-        /* Button */
+        /* Tombol submit login */
         .btn-login {
             width: 100%;
             padding: 12px;
@@ -145,7 +157,7 @@
         .btn-login:hover  { background: #7a0303; transform: translateY(-1px); }
         .btn-login:active { transform: translateY(0); }
 
-        /* Footer */
+        /* Footer hak cipta */
         .login-footer {
             text-align: center;
             margin-top: 18px;
@@ -154,7 +166,7 @@
             font-family: 'Montserrat', sans-serif;
         }
 
-        /* Responsive */
+        /* Responsif untuk layar kecil (mobile) */
         @media (max-width: 520px) {
             body { justify-content: center; padding: 24px 16px; }
             .login-card { padding: 28px 20px 22px; }
@@ -163,18 +175,23 @@
 </head>
 <body>
 
+{{-- Kartu Login --}}
 <div class="login-card">
 
+    {{-- Logo BRK Syariah --}}
     <div class="login-logo">
         <img src="{{ asset('assets/img/logo_brksyariah.png') }}" alt="BRK Syariah">
     </div>
 
+    {{-- Nama sistem --}}
     <p class="login-title">Sistem Informasi Laporan Realisasi Rahn</p>
 
+    {{-- Petunjuk login --}}
     <div class="login-subtitle">
         Silahkan login menggunakan akun Sistem Informasi Laporan Realisasi Rahn.
     </div>
 
+    {{-- Tampilkan pesan error jika ada --}}
     @if($errors->any())
     <div class="alert-error">
         <ul>
@@ -185,9 +202,11 @@
     </div>
     @endif
 
+    {{-- Form login --}}
     <form method="POST" action="{{ route('login') }}">
         @csrf
 
+        {{-- Input username --}}
         <div class="form-group">
             <input type="text" name="username"
                 value="{{ old('username') }}"
@@ -196,6 +215,7 @@
                 autofocus autocomplete="username">
         </div>
 
+        {{-- Input password dengan tombol show/hide --}}
         <div class="form-group">
             <div class="pw-wrapper">
                 <input type="password" name="password" id="inputPassword"
@@ -208,25 +228,31 @@
             </div>
         </div>
 
+        {{-- Tombol login --}}
         <button type="submit" class="btn-login">Login</button>
     </form>
 
+    {{-- Footer hak cipta --}}
     <p class="login-footer">&copy; {{ date('Y') }} PT. Bank Riau Kepri Syariah (Perseroda)</p>
 
 </div>
 
 <script>
-function togglePassword() {
-    const input = document.getElementById('inputPassword');
-    const icon  = document.getElementById('toggleIcon');
-    if (input.type === 'password') {
-        input.type     = 'text';
-        icon.className = 'fas fa-eye-slash';
-    } else {
-        input.type     = 'password';
-        icon.className = 'fas fa-eye';
+    // Fungsi untuk menampilkan atau menyembunyikan password
+    function togglePassword() {
+        const input = document.getElementById('inputPassword');
+        const icon  = document.getElementById('toggleIcon');
+
+        if (input.type === 'password') {
+            // Tampilkan password
+            input.type     = 'text';
+            icon.className = 'fas fa-eye-slash';
+        } else {
+            // Sembunyikan password
+            input.type     = 'password';
+            icon.className = 'fas fa-eye';
+        }
     }
-}
 </script>
 
 </body>
